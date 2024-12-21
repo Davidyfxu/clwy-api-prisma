@@ -1,0 +1,27 @@
+{
+  "name": "clwy-prisma",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nodemon --signal SIGTERM server.js",
+    "dev": "NODE_ENV=development nodemon --inspect server.js",
+    "prod": "NODE_ENV=production node server.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "morgan": "~1.9.1",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.4.2",
+    "pug": "2.0.0-beta11",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.3.0",
+    "@prisma/client": "^6.1.0",
+    "prisma": "^6.1.0"
+  }
+}
