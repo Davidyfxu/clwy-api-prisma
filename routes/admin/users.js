@@ -1,7 +1,7 @@
 import express from "express";
 import prisma from "../../lib/prisma.js";
-import { z } from "zod";
-import { NotFoundError, success, failure } from "../../utils/response.js";
+import { failure, NotFoundError, success } from "../../utils/response.js";
+import { updateUserSchema } from "../../utils/schemas.js";
 
 const router = express.Router();
 
@@ -38,10 +38,7 @@ function filterBody(req) {
     avatar: req.body.avatar,
   };
 }
-// 定义验证 schema
-const updateUserSchema = z.object({
-  email: z.string().min(1, "email不能为空"),
-});
+
 // 查询用户列表
 router.get("/", async (req, res) => {
   try {
@@ -60,19 +57,19 @@ router.get("/", async (req, res) => {
     const offset = (page - 1) * size;
 
     const where = {};
-    if (email || username || nickname || role) {
-      where.OR = [];
-    }
-    email && where.OR.push({ email: { contains: email } });
-    username && where.OR.push({ username: { contains: username } });
-    nickname && where.OR.push({ nickname: { contains: nickname } });
-    role && where.OR.push({ role: { contains: role } });
+    email && (where.email = email);
+    username && (where.username = { contains: username });
+    nickname && (where.nickname = { contains: nickname });
+    role && (where.role = role);
     const users = await prisma.users.findMany({
       where, // 应用条件查询
       skip: offset, // 跳过的记录数,
       take: size, // 返回的记录数
       orderBy: {
         id: "asc",
+      },
+      include: {
+        courses: true,
       },
     });
     // 查询总记录数
@@ -105,18 +102,15 @@ router.get("/:id", async (req, res) => {
 // 创建用户
 router.post("/", async (req, res) => {
   try {
-    const { title, content } = filterBody(req);
+    const body = filterBody(req);
 
-    const validationResult = updateUserSchema.safeParse(req.body);
+    const validationResult = updateUserSchema.safeParse(body);
     if (!validationResult.success) {
       return failure(res, validationResult.error);
     }
 
     const user = await prisma.users.create({
-      data: {
-        title,
-        content,
-      },
+      data: body,
     });
 
     success(res, "创建用户成功。", { user }, 201);

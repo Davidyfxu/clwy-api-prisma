@@ -1,7 +1,7 @@
 import express from "express";
 import prisma from "../../lib/prisma.js";
-import { z } from "zod";
 import { NotFoundError, success, failure } from "../../utils/response.js";
+import { updateSettingSchema } from "../../utils/schemas.js";
 
 const router = express.Router();
 
@@ -24,10 +24,7 @@ function filterBody(req) {
     copyright: req.body.copyright,
   };
 }
-// 定义验证 schema
-const updateSettingSchema = z.object({
-  name: z.string().min(1, "标题不能为空"),
-});
+
 // 查询系统设置列表
 router.get("/", async (req, res) => {
   try {

@@ -21,7 +21,7 @@ model Categories {
   rank      Int       @default(1)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  Courses   Courses[]
+  courses   Courses[]
 }
 
 model Courses {
@@ -29,6 +29,7 @@ model Courses {
   categoryId    Int
   category      Categories @relation(fields: [categoryId], references: [id])
   userId        Int
+  user          Users      @relation(fields: [userId], references: [id])
   name          String
   image         String?
   recommended   Boolean    @default(false)
@@ -38,8 +39,8 @@ model Courses {
   chaptersCount Int        @default(0)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  Chapters      Chapters[]
-  Likes         Likes[]
+  chapters      Chapters[]
+  likes         Likes[]
 
   @@index([categoryId])
   @@index([userId])
@@ -62,19 +63,20 @@ model Chapters {
 }
 
 model Users {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  username  String    @unique
   nickname  String
   password  String
   avatar    String?
-  sex       Gender   @default(UNKNOWN)
+  sex       Gender    @default(UNKNOWN)
   company   String?
   introduce String?
-  role      Role     @default(NORMAL)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Likes     Likes[]
+  role      Role      @default(NORMAL)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  likes     Likes[]
+  courses   Courses[]
 
   @@index([email])
   @@index([username])

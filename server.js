@@ -7,6 +7,8 @@ import createError from "http-errors";
 import {
   adminArticlesRouter,
   adminCategoriesRouter,
+  adminChaptersRouter,
+  adminCoursesRouter,
   adminSettingsRouter,
   adminUsersRouter,
 } from "./routes/index.js";
@@ -27,7 +29,9 @@ app.use(express.static(join(__dirname, "public")));
 app.use("/admin/articles", adminArticlesRouter);
 app.use("/admin/categories", adminCategoriesRouter);
 app.use("/admin/settings", adminSettingsRouter);
+app.use("/admin/courses", adminCoursesRouter);
 app.use("/admin/users", adminUsersRouter);
+app.use("/admin/chapters", adminChaptersRouter);
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to CLWY Prisma API" });

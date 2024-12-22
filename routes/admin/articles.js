@@ -1,7 +1,7 @@
 import express from "express";
 import prisma from "../../lib/prisma.js";
-import { z } from "zod";
 import { NotFoundError, success, failure } from "../../utils/response.js";
+import { updateArticleSchema } from "../../utils/schemas.js";
 
 const router = express.Router();
 
@@ -31,10 +31,7 @@ function filterBody(req) {
     content: req.body.content,
   };
 }
-// 定义验证 schema
-const updateArticleSchema = z.object({
-  title: z.string().min(1, "标题不能为空"),
-});
+
 // 查询文章列表
 router.get("/", async (req, res) => {
   try {

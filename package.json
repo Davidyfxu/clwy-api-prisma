@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon --signal SIGTERM server.js",
+    "start": "kill -9 $(lsof -t -i:3000) && nodemon --signal SIGTERM server.js",
     "dev": "NODE_ENV=development nodemon --inspect server.js",
     "prod": "NODE_ENV=production node server.js"
   },

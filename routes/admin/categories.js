@@ -1,7 +1,7 @@
 import express from "express";
 import prisma from "../../lib/prisma.js";
-import { z } from "zod";
-import { NotFoundError, success, failure } from "../../utils/response.js";
+import { failure, NotFoundError, success } from "../../utils/response.js";
+import { updateCategorySchema } from "../../utils/schemas.js";
 
 const router = express.Router();
 
@@ -14,6 +14,9 @@ async function getCategory(req) {
   const category = await prisma.categories.findUnique({
     where: {
       id: Number(id),
+    },
+    include: {
+      courses: true,
     },
   });
 
@@ -31,10 +34,7 @@ function filterBody(req) {
     rank: req.body.rank,
   };
 }
-// 定义验证 schema
-const updateCategorySchema = z.object({
-  name: z.string().min(1, "标题不能为空"),
-});
+
 // 查询分类列表
 router.get("/", async (req, res) => {
   try {
@@ -53,8 +53,9 @@ router.get("/", async (req, res) => {
       where, // 应用条件查询
       skip: offset, // 跳过的记录数,
       take: size, // 返回的记录数
-      orderBy: {
-        id: "asc",
+      orderBy: [{ rank: "asc" }, { id: "asc" }],
+      include: {
+        courses: true,
       },
     });
     // 查询总记录数
@@ -111,6 +112,16 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const category = await getCategory(req);
+    // 孤儿记录：如果有对应使用该分类的记录，则不能删除此分类
+    const count = await prisma.courses.count({
+      where: {
+        categoryId: Number(category?.id),
+      },
+    });
+    if (count > 0) {
+      return failure(res, new Error("该分类下有课程，不能删除。"));
+    }
+
     await prisma.categories.delete({
       where: {
         id: Number(category?.id),
