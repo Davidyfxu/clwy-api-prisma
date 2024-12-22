@@ -4,7 +4,12 @@ import logger from "morgan";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import createError from "http-errors";
-import { adminArticlesRouter } from "./routes/index.js";
+import {
+  adminArticlesRouter,
+  adminCategoriesRouter,
+  adminSettingsRouter,
+  adminUsersRouter,
+} from "./routes/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,11 +25,13 @@ app.use(cookieParser());
 app.use(express.static(join(__dirname, "public")));
 
 app.use("/admin/articles", adminArticlesRouter);
+app.use("/admin/categories", adminCategoriesRouter);
+app.use("/admin/settings", adminSettingsRouter);
+app.use("/admin/users", adminUsersRouter);
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to CLWY Prisma API" });
 });
-
 // Catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));
