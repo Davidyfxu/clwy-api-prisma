@@ -4,6 +4,7 @@ import adminSettingsRouter from "./admin/settings.js";
 import adminUsersRouter from "./admin/users.js";
 import adminCoursesRouter from "./admin/courses.js";
 import adminChaptersRouter from "./admin/chapters.js";
+import adminChartsRouter from "./admin/charts.js";
 
 export {
   adminArticlesRouter,
@@ -12,4 +13,5 @@ export {
   adminUsersRouter,
   adminCoursesRouter,
   adminChaptersRouter,
+  adminChartsRouter,
 };

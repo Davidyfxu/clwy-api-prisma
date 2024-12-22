@@ -8,6 +8,7 @@ import {
   adminArticlesRouter,
   adminCategoriesRouter,
   adminChaptersRouter,
+  adminChartsRouter,
   adminCoursesRouter,
   adminSettingsRouter,
   adminUsersRouter,
@@ -32,6 +33,7 @@ app.use("/admin/settings", adminSettingsRouter);
 app.use("/admin/courses", adminCoursesRouter);
 app.use("/admin/users", adminUsersRouter);
 app.use("/admin/chapters", adminChaptersRouter);
+app.use("/admin/charts", adminChartsRouter);
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to CLWY Prisma API" });
