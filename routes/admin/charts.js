@@ -1,5 +1,5 @@
 import express from "express";
-import { failure, success } from "../../utils/response.js";
+import { failure, success } from "../../utils/responses.js";
 import prisma from "../../lib/prisma.js";
 
 const router = express.Router();

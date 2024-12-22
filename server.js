@@ -6,6 +6,7 @@ import { dirname, join } from "path";
 import createError from "http-errors";
 import {
   adminArticlesRouter,
+  adminAuthRouter,
   adminCategoriesRouter,
   adminChaptersRouter,
   adminChartsRouter,
@@ -13,6 +14,9 @@ import {
   adminSettingsRouter,
   adminUsersRouter,
 } from "./routes/index.js";
+import { config } from "dotenv";
+
+config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,6 +38,7 @@ app.use("/admin/courses", adminCoursesRouter);
 app.use("/admin/users", adminUsersRouter);
 app.use("/admin/chapters", adminChaptersRouter);
 app.use("/admin/charts", adminChartsRouter);
+app.use("/admin/auth", adminAuthRouter);
 // Routes
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to CLWY Prisma API" });

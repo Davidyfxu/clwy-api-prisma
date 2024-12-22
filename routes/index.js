@@ -5,6 +5,7 @@ import adminUsersRouter from "./admin/users.js";
 import adminCoursesRouter from "./admin/courses.js";
 import adminChaptersRouter from "./admin/chapters.js";
 import adminChartsRouter from "./admin/charts.js";
+import adminAuthRouter from "./admin/auth.js";
 
 export {
   adminArticlesRouter,
@@ -14,4 +15,5 @@ export {
   adminCoursesRouter,
   adminChaptersRouter,
   adminChartsRouter,
+  adminAuthRouter,
 };

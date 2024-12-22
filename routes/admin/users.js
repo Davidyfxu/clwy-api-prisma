@@ -1,7 +1,8 @@
 import express from "express";
 import prisma from "../../lib/prisma.js";
-import { failure, NotFoundError, success } from "../../utils/response.js";
+import { failure, success } from "../../utils/responses.js";
 import { updateUserSchema } from "../../utils/schemas.js";
+import { NotFoundError } from "../../utils/errors.js";
 
 const router = express.Router();
 
