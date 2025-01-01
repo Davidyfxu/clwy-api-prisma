@@ -29,8 +29,8 @@ async function getCourse(req) {
 // 白名单过滤
 function filterBody(req) {
   return {
-    categoryId: req.body.categoryId,
-    userId: req.body.userId,
+    categoryId: Number(req.body.categoryId),
+    // userId: req.body.userId,
     name: req.body.name,
     image: req.body.image,
     recommended: req.body.recommended,
@@ -122,18 +122,19 @@ router.get("/:id", async (req, res) => {
 // 创建课程
 router.post("/", async (req, res) => {
   try {
-    const { title, content } = filterBody(req);
+    const body = filterBody(req);
+    console.log("===hello===body", body);
 
-    const validationResult = updateCourseSchema.safeParse(req.body);
+    const validationResult = updateCourseSchema.safeParse(body);
     if (!validationResult.success) {
       return failure(res, validationResult.error);
     }
 
+    body.userId = req.user.id;
+    console.log("===hello===", body);
+
     const course = await prisma.courses.create({
-      data: {
-        title,
-        content,
-      },
+      data: body,
     });
 
     success(res, "创建课程成功。", { course }, 201);

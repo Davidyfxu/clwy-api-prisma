@@ -47,7 +47,7 @@ router.post("/sign_in", async (req, res) => {
         userId: user.id,
       },
       process.env.SECRET,
-      { expiresIn: "30d" },
+      { expiresIn: "60d" },
     );
 
     success(res, "登录成功。", { token });

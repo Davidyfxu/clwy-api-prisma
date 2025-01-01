@@ -3,6 +3,7 @@ import { z } from "zod";
 // 定义验证 schema，用于更新课程信息
 const updateCourseSchema = z.object({
   name: z.string().min(1, "课程名称不能为空"),
+  categoryId: z.number().int().positive("请选择分类"), // 分类ID，必须是正整数
   image: z.string().url().nullable().optional(), // 课程封面图片，必须是有效的URL
   recommended: z.boolean().optional(), // 是否推荐课程
   introductory: z.boolean().optional(), // 是否为入门课程
