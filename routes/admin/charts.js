@@ -36,7 +36,6 @@ router.get("/user", async (req, res) => {
         GROUP BY month 
         ORDER BY month ASC
   `;
-    console.log("results", results);
     const data = {
       months: [],
       values: [],

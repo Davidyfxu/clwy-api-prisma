@@ -99,20 +99,26 @@ router.get("/:id", async (req, res) => {
 // 创建章节
 router.post("/", async (req, res) => {
   try {
-    const { title, content } = filterBody(req);
+    const body = filterBody(req);
 
-    const validationResult = updateChapterSchema.safeParse(req.body);
+    const validationResult = updateChapterSchema.safeParse(body);
     if (!validationResult.success) {
       return failure(res, validationResult.error);
     }
 
     const chapter = await prisma.chapters.create({
+      data: body,
+    });
+    await prisma.courses.update({
+      where: {
+        id: chapter.courseId,
+      },
       data: {
-        title,
-        content,
+        chaptersCount: {
+          increment: 1,
+        },
       },
     });
-
     success(res, "创建章节成功。", { chapter }, 201);
   } catch (error) {
     failure(res, error);
@@ -126,6 +132,16 @@ router.delete("/:id", async (req, res) => {
     await prisma.chapters.delete({
       where: {
         id: Number(chapter?.id),
+      },
+    });
+    await prisma.courses.update({
+      where: {
+        id: chapter.courseId,
+      },
+      data: {
+        chaptersCount: {
+          decrement: 1,
+        },
       },
     });
     success(res, "删除章节成功。");

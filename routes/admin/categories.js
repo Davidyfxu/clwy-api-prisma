@@ -3,6 +3,7 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateCategorySchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { StatusCodes } from "http-status-codes";
 
 const router = express.Router();
 
@@ -120,7 +121,11 @@ router.delete("/:id", async (req, res) => {
       },
     });
     if (count > 0) {
-      return failure(res, new Error("该分类下有课程，不能删除。"));
+      return failure(
+        res,
+        new Error("该分类下有课程，不能删除。"),
+        StatusCodes.CONFLICT,
+      );
     }
 
     await prisma.categories.delete({
