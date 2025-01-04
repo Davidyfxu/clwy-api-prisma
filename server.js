@@ -14,15 +14,19 @@ import {
   adminSettingsRouter,
   adminUsersRouter,
   articlesRouter,
+  authRouter,
   categoriesRouter,
   chaptersRouter,
   coursesRouter,
+  likesRouter,
   sampleRouter,
   searchRouter,
   settingsRouter,
+  usersRouter,
 } from "./routes/index.js";
 import { config } from "dotenv";
-import adminAuth from "./middlewares/admin-auth.js";
+import { adminAuth, userAuth } from "./middlewares/index.js";
+import cors from "cors";
 
 config();
 
@@ -31,6 +35,10 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 3000;
+const corsOptions = {
+  origin: ["https://clwy.cn", "http://localhost:63342"],
+};
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(logger("dev"));
@@ -55,6 +63,9 @@ app.use("/chapters", chaptersRouter);
 app.use("/articles", articlesRouter);
 app.use("/settings", settingsRouter);
 app.use("/search", searchRouter);
+app.use("/auth", authRouter);
+app.use("/users", userAuth, usersRouter);
+app.use("/likes", userAuth, likesRouter);
 // Catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));

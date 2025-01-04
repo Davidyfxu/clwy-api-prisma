@@ -13,6 +13,9 @@ import chaptersRouter from "./chapters.js";
 import articlesRouter from "./articles.js";
 import settingsRouter from "./settings.js";
 import searchRouter from "./search.js";
+import authRouter from "./auth.js";
+import usersRouter from "./users.js";
+import likesRouter from "./likes.js";
 
 export {
   adminArticlesRouter,
@@ -30,4 +33,7 @@ export {
   articlesRouter,
   settingsRouter,
   searchRouter,
+  authRouter,
+  usersRouter,
+  likesRouter,
 };
