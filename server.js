@@ -13,6 +13,13 @@ import {
   adminCoursesRouter,
   adminSettingsRouter,
   adminUsersRouter,
+  articlesRouter,
+  categoriesRouter,
+  chaptersRouter,
+  coursesRouter,
+  sampleRouter,
+  searchRouter,
+  settingsRouter,
 } from "./routes/index.js";
 import { config } from "dotenv";
 import adminAuth from "./middlewares/admin-auth.js";
@@ -41,9 +48,13 @@ app.use("/admin/chapters", adminAuth, adminChaptersRouter);
 app.use("/admin/charts", adminAuth, adminChartsRouter);
 app.use("/admin/auth", adminAuthRouter);
 // Routes
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to CLWY Prisma API" });
-});
+app.use("/", sampleRouter);
+app.use("/categories", categoriesRouter);
+app.use("/courses", coursesRouter);
+app.use("/chapters", chaptersRouter);
+app.use("/articles", articlesRouter);
+app.use("/settings", settingsRouter);
+app.use("/search", searchRouter);
 // Catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));

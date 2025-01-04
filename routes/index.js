@@ -6,6 +6,13 @@ import adminCoursesRouter from "./admin/courses.js";
 import adminChaptersRouter from "./admin/chapters.js";
 import adminChartsRouter from "./admin/charts.js";
 import adminAuthRouter from "./admin/auth.js";
+import sampleRouter from "./sample.js";
+import categoriesRouter from "./categories.js";
+import coursesRouter from "./courses.js";
+import chaptersRouter from "./chapters.js";
+import articlesRouter from "./articles.js";
+import settingsRouter from "./settings.js";
+import searchRouter from "./search.js";
 
 export {
   adminArticlesRouter,
@@ -16,4 +23,11 @@ export {
   adminChaptersRouter,
   adminChartsRouter,
   adminAuthRouter,
+  sampleRouter,
+  categoriesRouter,
+  coursesRouter,
+  chaptersRouter,
+  articlesRouter,
+  settingsRouter,
+  searchRouter,
 };
