@@ -15,6 +15,7 @@ import {
   adminUsersRouter,
   articlesRouter,
   authRouter,
+  captchaRouter,
   categoriesRouter,
   chaptersRouter,
   coursesRouter,
@@ -64,6 +65,7 @@ app.use("/articles", articlesRouter);
 app.use("/settings", settingsRouter);
 app.use("/search", searchRouter);
 app.use("/auth", authRouter);
+app.use("/captcha", captchaRouter);
 app.use("/users", userAuth, usersRouter);
 app.use("/likes", userAuth, likesRouter);
 // Catch 404 and forward to error handler
