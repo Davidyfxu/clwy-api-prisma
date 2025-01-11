@@ -3,9 +3,19 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateCourseSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { delKey, getKeysByPattern } from "../../utils/redis.js";
 
 const router = express.Router();
 
+async function clearCache(course = null) {
+  let keys = await getKeysByPattern("courses:*");
+  if (keys.length !== 0) {
+    await delKey(keys);
+  }
+  if (course) {
+    await delKey(`course:${course.id}`);
+  }
+}
 // 公共方法：查询当前课程
 async function getCourse(req) {
   // 获取课程 ID
@@ -123,20 +133,15 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const body = filterBody(req);
-    console.log("===hello===body", body);
-
     const validationResult = updateCourseSchema.safeParse(body);
     if (!validationResult.success) {
       return failure(res, validationResult.error);
     }
-
     body.userId = req.user.id;
-    console.log("===hello===", body);
-
     const course = await prisma.courses.create({
       data: body,
     });
-
+    await clearCache();
     success(res, "创建课程成功。", { course }, 201);
   } catch (error) {
     failure(res, error);
@@ -158,6 +163,7 @@ router.delete("/:id", async (req, res) => {
         id: Number(course?.id),
       },
     });
+    await clearCache(course);
     success(res, "删除课程成功。");
   } catch (error) {
     failure(res, error);
@@ -181,6 +187,7 @@ router.put("/:id", async (req, res) => {
       },
       data: body,
     });
+    await clearCache(course);
     success(res, "更新课程成功。", { course: updatedCourse });
   } catch (error) {
     failure(res, error);

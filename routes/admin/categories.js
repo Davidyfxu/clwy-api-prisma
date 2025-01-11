@@ -4,9 +4,16 @@ import { failure, success } from "../../utils/responses.js";
 import { updateCategorySchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { StatusCodes } from "http-status-codes";
+import { delKey } from "../../utils/redis.js";
 
 const router = express.Router();
-
+// 清除缓存
+async function clearCache(category = null) {
+  await delKey("categories");
+  if (category) {
+    await delKey(`category:${category.id}`);
+  }
+}
 // 公共方法：查询当前分类
 async function getCategory(req) {
   // 获取分类 ID
@@ -103,7 +110,7 @@ router.post("/", async (req, res) => {
         rank,
       },
     });
-
+    await clearCache();
     success(res, "创建分类成功。", { category }, 201);
   } catch (error) {
     failure(res, error);
@@ -133,6 +140,7 @@ router.delete("/:id", async (req, res) => {
         id: Number(category?.id),
       },
     });
+    await clearCache(category);
     success(res, "删除分类成功。");
   } catch (error) {
     failure(res, error);
@@ -156,6 +164,7 @@ router.put("/:id", async (req, res) => {
       },
       data: body,
     });
+    await clearCache(category);
     success(res, "更新分类成功。", { category: updatedCategory });
   } catch (error) {
     failure(res, error);

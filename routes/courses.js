@@ -2,6 +2,7 @@ import { failure, success } from "../utils/responses.js";
 import express from "express";
 import prisma from "../lib/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
+import { getKey, setKey } from "../utils/redis.js";
 
 const router = express.Router();
 
@@ -12,11 +13,18 @@ const router = express.Router();
 router.get("/", async function (req, res) {
   try {
     const query = req.query;
+    const categoryId = query.categoryId;
+
     const currentPage = Math.abs(Number(query.currentPage)) || 1;
     const pageSize = Math.abs(Number(query.pageSize)) || 10;
     const offset = (currentPage - 1) * pageSize;
-    if (!query.categoryId) {
+    if (!categoryId) {
       throw new Error("获取课程列表失败，分类ID不能为空。");
+    }
+    const cacheKey = `courses:${categoryId}:${currentPage}:${pageSize}`;
+    let data = await getKey(cacheKey);
+    if (data) {
+      return success(res, "查询文章列表成功。", data);
     }
     const condition = {
       omit: {
@@ -25,7 +33,7 @@ router.get("/", async function (req, res) {
         content: true,
       },
       where: {
-        categoryId: Number(query.categoryId),
+        categoryId: Number(categoryId),
       },
     };
     const courses = await prisma.courses.findMany({
@@ -39,18 +47,20 @@ router.get("/", async function (req, res) {
     // 查询总记录数
     const total = await prisma.courses.count({
       where: {
-        categoryId: Number(query.categoryId),
+        categoryId: Number(categoryId),
       },
     });
-
-    success(res, "查询课程数据成功。", {
+    data = {
       courses,
       pagination: {
         total,
         currentPage,
         pageSize,
       },
-    });
+    };
+    await setKey(cacheKey, data);
+
+    success(res, "查询课程数据成功。", data);
   } catch (error) {
     failure(res, error);
   }

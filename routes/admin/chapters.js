@@ -3,9 +3,13 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateChapterSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { delKey } from "../../utils/redis.js";
 
 const router = express.Router();
-
+async function clearCache(chapter) {
+  await delKey(`chapters:${chapter.courseId}`);
+  await delKey(`chapter:${chapter.id}`);
+}
 // 公共方法：查询当前章节
 async function getChapter(req) {
   // 获取章节 ID
@@ -119,6 +123,7 @@ router.post("/", async (req, res) => {
         },
       },
     });
+    await clearCache(chapter);
     success(res, "创建章节成功。", { chapter }, 201);
   } catch (error) {
     failure(res, error);
@@ -144,6 +149,7 @@ router.delete("/:id", async (req, res) => {
         },
       },
     });
+    await clearCache(chapter);
     success(res, "删除章节成功。");
   } catch (error) {
     failure(res, error);
@@ -167,6 +173,7 @@ router.put("/:id", async (req, res) => {
       },
       data: body,
     });
+    await clearCache(chapter);
     success(res, "更新章节成功。", { chapter: updatedChapter });
   } catch (error) {
     failure(res, error);

@@ -1,6 +1,7 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
 import prisma from "../lib/prisma.js";
+import { getKey, setKey } from "../utils/redis.js";
 
 const router = express.Router();
 
@@ -10,6 +11,11 @@ const router = express.Router();
  */
 router.get("/", async function (req, res) {
   try {
+    // 如果有缓存，直接返回缓存数据
+    let data = await getKey("index");
+    if (data) {
+      return success(res, "获取首页数据成功。", data);
+    }
     const recommendedCourses = await prisma.courses.findMany({
       where: {
         recommended: true,
@@ -71,11 +77,16 @@ router.get("/", async function (req, res) {
         introductory: true,
       },
     });
-    success(res, "获取首页数据成功。", {
+
+    // 组装数据
+    data = {
       recommendedCourses,
       likesCourses,
       introductoryCourses,
-    });
+    };
+    // 设置缓存过期时间，为10秒钟
+    await setKey("index", data, 30 * 60);
+    success(res, "获取首页数据成功。", data);
   } catch (error) {
     failure(res, error);
   }

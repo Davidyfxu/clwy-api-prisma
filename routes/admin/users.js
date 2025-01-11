@@ -3,9 +3,12 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateUserSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { delKey } from "../../utils/redis.js";
 
 const router = express.Router();
-
+async function clearCache(user) {
+  await delKey(`user:${user.id}`);
+}
 // 公共方法：查询当前用户
 async function getUser(req) {
   // 获取用户 ID
@@ -164,6 +167,7 @@ router.put("/:id", async (req, res) => {
       },
       data: body,
     });
+    await clearCache(user);
     success(res, "更新用户成功。", { user: updatedUser });
   } catch (error) {
     failure(res, error);
