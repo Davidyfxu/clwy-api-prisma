@@ -34,8 +34,8 @@ function failure(res, error) {
     errors = "您提交的 token 错误或已过期。";
   } else if (error instanceof Error) {
     // http-errors 库创建的错误
-    statusCode = error?.status;
-    errors = error?.message;
+    statusCode = error?.status || statusCode;
+    errors = error?.message || errors;
   }
   res.status(statusCode).json({
     status: false,

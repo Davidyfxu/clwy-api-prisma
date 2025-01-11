@@ -41,11 +41,13 @@ router.post("/sign_in", async (req, res) => {
     if (!password) {
       throw new BadRequestError("密码必须填写。");
     }
+    console.log("===hello===");
     const user = await prisma.users.findFirst({
       where: {
         OR: [{ email: login }, { username: login }],
       },
     });
+    console.log("===hello===222222", user);
     if (!user) {
       throw new NotFoundError("用户不存在，无法登录。");
     }
@@ -58,6 +60,7 @@ router.post("/sign_in", async (req, res) => {
     });
     success(res, "登录成功", { token });
   } catch (error) {
+    console.log("===hello===failure", error?.name);
     failure(res, error);
   }
 });
