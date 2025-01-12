@@ -3,6 +3,7 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateSettingSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { flushAll } from "../../utils/redis.js";
 
 const router = express.Router();
 
@@ -57,5 +58,15 @@ router.put("/", async (req, res) => {
     failure(res, error);
   }
 });
-
+/**
+ * 清除所有缓存
+ */
+router.get("/flush-all", async function (req, res) {
+  try {
+    await flushAll();
+    success(res, "清除所有缓存成功。");
+  } catch (error) {
+    failure(res, error);
+  }
+});
 export default router;

@@ -15,6 +15,7 @@ import {
   adminUsersRouter,
   articlesRouter,
   authRouter,
+  captchaRouter,
   categoriesRouter,
   chaptersRouter,
   coursesRouter,
@@ -27,6 +28,7 @@ import {
 import { config } from "dotenv";
 import { adminAuth, userAuth } from "./middlewares/index.js";
 import cors from "cors";
+import { mailConsumer } from "./utils/rabbit-mq.js";
 
 config();
 
@@ -64,6 +66,7 @@ app.use("/articles", articlesRouter);
 app.use("/settings", settingsRouter);
 app.use("/search", searchRouter);
 app.use("/auth", authRouter);
+app.use("/captcha", captchaRouter);
 app.use("/users", userAuth, usersRouter);
 app.use("/likes", userAuth, likesRouter);
 // Catch 404 and forward to error handler
@@ -94,3 +97,8 @@ process.on("SIGTERM", () => {
     process.exit(0);
   });
 });
+
+(async () => {
+  await mailConsumer();
+  console.log("邮件消费者已启动");
+})();

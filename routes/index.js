@@ -16,6 +16,7 @@ import searchRouter from "./search.js";
 import authRouter from "./auth.js";
 import usersRouter from "./users.js";
 import likesRouter from "./likes.js";
+import captchaRouter from "./captcha.js";
 
 export {
   adminArticlesRouter,
@@ -36,4 +37,5 @@ export {
   authRouter,
   usersRouter,
   likesRouter,
+  captchaRouter,
 };

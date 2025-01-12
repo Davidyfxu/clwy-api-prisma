@@ -2,8 +2,13 @@ import { failure, success } from "../utils/responses.js";
 import express from "express";
 import prisma from "../lib/prisma.js";
 import { BadRequestError, NotFoundError } from "../utils/errors.js";
+import { delKey, getKey, setKey } from "../utils/redis.js";
 
 const router = express.Router();
+// 清除缓存
+async function clearCache(user) {
+  await delKey(`user:${user.id}`);
+}
 
 /**
  * 查询登录用户详细数据
@@ -11,7 +16,11 @@ const router = express.Router();
  */
 router.get("/me", async function (req, res) {
   try {
-    const user = await getUser(req);
+    let user = await getKey(`user:${req.userId}`);
+    if (!user) {
+      const user = await getUser(req);
+      await setKey(`user:${req.userId}`, user);
+    }
     success(res, "查询当前用户信息成功。", { user });
   } catch (error) {
     failure(res, error);
@@ -60,6 +69,7 @@ router.put("/info", async function (req, res) {
       data: body,
     });
     delete user.password;
+    await clearCache(user);
     success(res, "更新用户信息成功。", { user });
   } catch (error) {
     failure(res, error);
@@ -100,6 +110,7 @@ router.put("/account", async function (req, res) {
       data: body,
     });
     delete user.password;
+    await clearCache(user);
     success(res, "更新用户信息成功。", { user });
   } catch (error) {
     failure(res, error);

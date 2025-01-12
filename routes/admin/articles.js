@@ -3,17 +3,37 @@ import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateArticleSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
+import { delKey, getKeysByPattern } from "../../utils/redis.js";
 
 const router = express.Router();
+/**
+ * 清除缓存
+ * @returns {Promise<void>}
+ */
+async function clearCache(id = null) {
+  // 清除所有文章列表缓存
+  const keys = await getKeysByPattern("articles:*");
+  if (keys.length !== 0) {
+    await delKey(keys);
+  }
 
+  // 如果传递了id，则通过id清除文章详情缓存
+  if (id) {
+    // 如果是数组，则遍历
+    const keys = Array.isArray(id)
+      ? id.map((item) => `article:${item}`)
+      : `article:${id}`;
+    await delKey(keys);
+  }
+}
 // 公共方法：查询当前文章
 async function getArticle(req) {
   // 获取文章 ID
   const { id } = req.params;
-
   // 查询当前文章
   const article = await prisma.articles.findUnique({
     where: {
+      deletedAt: null,
       id: Number(id),
     },
   });
@@ -43,7 +63,9 @@ router.get("/", async (req, res) => {
     // 计算offset
     const offset = (page - 1) * size;
 
-    const where = {};
+    const where = {
+      deletedAt: null,
+    };
     if (title) {
       where.title = { contains: title };
     }
@@ -98,7 +120,7 @@ router.post("/", async (req, res) => {
         content,
       },
     });
-
+    await clearCache();
     success(res, "创建文章成功。", { article }, 201);
   } catch (error) {
     failure(res, error);
@@ -137,7 +159,72 @@ router.put("/:id", async (req, res) => {
       },
       data: body,
     });
+    await clearCache(article.id);
     success(res, "更新文章成功。", { article: updatedArticle });
+  } catch (error) {
+    failure(res, error);
+  }
+});
+
+/**
+ * 删除到回收站
+ * POST /admin/articles/delete
+ */
+router.post("/delete", async function (req, res) {
+  try {
+    const { ids } = req.body;
+
+    await prisma.articles.updateMany({
+      where: {
+        id: {
+          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
+        },
+      },
+      data: { deletedAt: new Date() },
+    });
+    await clearCache(ids);
+    success(res, "已删除到回收站。");
+  } catch (error) {
+    failure(res, error);
+  }
+});
+/**
+ * 从回收站回复
+ * POST /admin/articles/restore
+ */
+router.post("/restore", async function (req, res) {
+  try {
+    const { ids } = req.body;
+    await prisma.articles.updateMany({
+      where: {
+        id: {
+          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
+        },
+      },
+      data: { deletedAt: null },
+    });
+    await clearCache(ids);
+    success(res, "已从回收站恢复。");
+  } catch (error) {
+    failure(res, error);
+  }
+});
+/**
+ * 强制删除文章
+ * POST /admin/articles/force_delete
+ */
+router.post("/force_delete", async function (req, res) {
+  try {
+    const { ids } = req.body;
+    await prisma.articles.deleteMany({
+      where: {
+        id: {
+          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
+        },
+      },
+    });
+    await clearCache();
+    success(res, "已彻底删除。");
   } catch (error) {
     failure(res, error);
   }
