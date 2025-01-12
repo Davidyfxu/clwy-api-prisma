@@ -1,5 +1,6 @@
 import amqp from "amqplib";
 import sendMail from "./mail.js";
+import logger from "./logger.js";
 // 创建全局的RabbitMQ连接和通道
 let connection;
 let channel;
@@ -12,7 +13,7 @@ const connectToRabbitMQ = async () => {
     console.log("成功连接到RabbitMQ");
     await channel.assertQueue("mail_queue", { durable: true });
   } catch (e) {
-    console.error("连接到RabbitMQ失败：", e);
+    logger.error("RabbitMQ 连接失败：", e);
   }
 };
 
@@ -24,7 +25,7 @@ const mailProducer = async (msg) => {
       persistent: true,
     });
   } catch (e) {
-    console.error("发送邮件到队列失败：", e);
+    logger.error("邮件队列生产者错误：", e);
   }
 };
 
@@ -43,7 +44,7 @@ const mailConsumer = async () => {
       },
     );
   } catch (e) {
-    console.error("接收邮件队列消息失败：", e);
+    logger.error("邮件队列消费者错误：", e);
   }
 };
 

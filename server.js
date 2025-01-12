@@ -100,5 +100,4 @@ process.on("SIGTERM", () => {
 
 (async () => {
   await mailConsumer();
-  console.log("邮件消费者已启动");
 })();

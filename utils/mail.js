@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import logger from "./logger.js";
 
 /**
  * 发送邮件
@@ -29,7 +30,7 @@ const sendMail = async (email, subject, html) => {
       html,
     });
   } catch (e) {
-    console.log("邮件发送失败：", e);
+    logger.error("邮件发送失败：", e);
   }
 };
 

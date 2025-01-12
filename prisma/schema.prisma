@@ -79,6 +79,7 @@ model Users {
   updatedAt DateTime  @updatedAt
   likes     Likes[]
   courses   Courses[]
+  Orders    Orders[]
 
   @@index([email])
   @@index([username])
@@ -115,4 +116,37 @@ model Settings {
   icp       String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Logs {
+  id        Int      @id @default(autoincrement())
+  level     String
+  message   String
+  meta      String
+  timestamp DateTime @default(now())
+}
+
+model Orders {
+  id            Int           @id @default(autoincrement())
+  outTradeNo    String
+  tradeNo       String
+  userId        Int
+  user          Users         @relation(fields: [userId], references: [id])
+  subject       String
+  totalAmount   Float
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum PaymentMethod {
+  ALIPAY
+  WECHATPAY
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  CANCEL
 }

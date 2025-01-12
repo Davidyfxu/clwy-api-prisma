@@ -1,4 +1,5 @@
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
+import logger from "./logger.js";
 
 /**
  * 请求成功
@@ -36,7 +37,9 @@ function failure(res, error) {
     // http-errors 库创建的错误
     statusCode = error?.status || statusCode;
     errors = error?.message || errors;
+    logger.error("服务器错误：", error);
   }
+  logger.error("test", error);
   res.status(statusCode).json({
     status: false,
     message: `请求失败: ${error.name}`,

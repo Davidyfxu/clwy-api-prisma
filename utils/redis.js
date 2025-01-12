@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import logger from "./logger.js";
 
 // 创建全局的 Redis 客户端实例
 let client;
@@ -10,7 +11,7 @@ const redisClient = async () => {
   if (client) return; // 如果客户端已经初始化，则不再重复初始化
 
   client = await createClient()
-    .on("error", (err) => console.log("Redis 连接失败", err))
+    .on("error", (err) => logger.error("Redis 连接失败：", err))
     .connect();
 };
 
