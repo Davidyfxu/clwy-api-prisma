@@ -28,6 +28,7 @@ import {
 import { config } from "dotenv";
 import { adminAuth, userAuth } from "./middlewares/index.js";
 import cors from "cors";
+import { mailConsumer } from "./utils/rabbit-mq.js";
 
 config();
 
@@ -96,3 +97,8 @@ process.on("SIGTERM", () => {
     process.exit(0);
   });
 });
+
+(async () => {
+  await mailConsumer();
+  console.log("邮件消费者已启动");
+})();

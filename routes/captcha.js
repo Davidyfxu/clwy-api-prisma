@@ -19,7 +19,6 @@ router.get("/", async (req, res) => {
       width: 100, // 宽
       height: 40, // 高
     });
-    console.log(captcha.text);
     const captchaKey = `captcha:${uuidv4()}`;
     await setKey(captchaKey, captcha.text, 60 * 10);
     //
