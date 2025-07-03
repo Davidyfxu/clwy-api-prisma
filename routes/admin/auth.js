@@ -5,7 +5,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from "../../utils/errors.js";
-import prisma from "../../lib/prisma.js";
+import { User } from "../../models/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -25,9 +25,9 @@ router.post("/sign_in", async (req, res) => {
       throw new BadRequestError("密码必须填写。");
     }
 
-    const user = await prisma.users.findFirst({
+    const user = await User.findOne({
       where: {
-        OR: [{ email: login }, { username: login }],
+        [User.sequelize.Op.or]: [{ email: login }, { username: login }],
       },
     });
     if (!user) {

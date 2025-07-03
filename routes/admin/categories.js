@@ -1,5 +1,5 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
+import { Category, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateCategorySchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
@@ -20,13 +20,11 @@ async function getCategory(req) {
   const { id } = req.params;
 
   // 查询当前分类
-  const category = await prisma.categories.findUnique({
+  const category = await Category.findOne({
     where: {
       id: Number(id),
     },
-    include: {
-      courses: true,
-    },
+    include: [{ model: Course }],
   });
 
   // 如果没有找到，就抛出异常
@@ -58,17 +56,17 @@ router.get("/", async (req, res) => {
     if (name) {
       where.name = { contains: name };
     }
-    const categories = await prisma.categories.findMany({
-      where, // 应用条件查询
-      skip: offset, // 跳过的记录数,
-      take: size, // 返回的记录数
-      orderBy: [{ rank: "asc" }, { id: "asc" }],
-      include: {
-        courses: true,
-      },
+    const categories = await Category.findAll({
+      where,
+      offset,
+      limit: size,
+      order: [
+        ["rank", "asc"],
+        ["id", "asc"],
+      ],
+      include: [{ model: Course }],
     });
-    // 查询总记录数
-    const total = await prisma.categories.count({ where });
+    const total = await Category.count({ where });
 
     // 查询分类列表
     success(res, "查询分类列表成功。", {
@@ -104,11 +102,9 @@ router.post("/", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const category = await prisma.categories.create({
-      data: {
-        name,
-        rank,
-      },
+    const category = await Category.create({
+      name,
+      rank,
     });
     await clearCache();
     success(res, "创建分类成功。", { category }, 201);
@@ -122,7 +118,7 @@ router.delete("/:id", async (req, res) => {
   try {
     const category = await getCategory(req);
     // 孤儿记录：如果有对应使用该分类的记录，则不能删除此分类
-    const count = await prisma.courses.count({
+    const count = await Course.count({
       where: {
         categoryId: Number(category?.id),
       },
@@ -135,7 +131,7 @@ router.delete("/:id", async (req, res) => {
       );
     }
 
-    await prisma.categories.delete({
+    await Category.destroy({
       where: {
         id: Number(category?.id),
       },
@@ -158,12 +154,13 @@ router.put("/:id", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedCategory = await prisma.categories.update({
+    const updatedCategoryArr = await Category.update(body, {
       where: {
         id: category?.id,
       },
-      data: body,
+      returning: true,
     });
+    const updatedCategory = updatedCategoryArr[1][0];
     await clearCache(category);
     success(res, "更新分类成功。", { category: updatedCategory });
   } catch (error) {

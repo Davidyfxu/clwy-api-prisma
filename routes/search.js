@@ -1,6 +1,6 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
+import { Article, Course, User } from "../models/index.js";
 
 const router = express.Router();
 
@@ -14,22 +14,18 @@ router.get("/", async function (req, res) {
     const currentPage = Math.abs(Number(query.currentPage)) || 1;
     const pageSize = Math.abs(Number(query.pageSize)) || 10;
     const offset = (currentPage - 1) * pageSize;
-    const condition = {
-      omit: { categoryId: true, userId: true, content: true },
-      orderBy: { id: "desc" },
-      skip: offset,
-      take: pageSize,
-    };
+    const where = {};
     if (query.name) {
-      condition.where = {
-        name: {
-          contains: query.name,
-        },
-      };
+      where.name = { [Course.sequelize.Op.like]: `%${query.name}%` };
     }
-    const courses = await prisma.courses.findMany({ ...condition });
-    const count = await prisma.courses.count({});
-
+    const courses = await Course.findAll({
+      attributes: { exclude: ["categoryId", "userId", "content"] },
+      where,
+      order: [["id", "DESC"]],
+      offset,
+      limit: pageSize,
+    });
+    const count = await Course.count({ where });
     success(res, "获取搜索数据成功。", {
       courses,
       pagination: {

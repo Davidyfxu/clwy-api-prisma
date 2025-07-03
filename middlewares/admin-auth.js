@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { failure } from "../utils/responses.js";
 import { UnauthorizedError } from "../utils/errors.js";
-import prisma from "../lib/prisma.js";
+import { User } from "../models/index.js";
 
 const middleware = async (req, res, next) => {
   try {
@@ -11,7 +11,7 @@ const middleware = async (req, res, next) => {
     }
     const decoded = jwt.verify(token, process.env.SECRET);
     const { userId } = decoded;
-    const user = await prisma.users.findUnique({
+    const user = await User.findOne({
       where: {
         id: Number(userId),
       },

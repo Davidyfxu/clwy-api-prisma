@@ -1,8 +1,8 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
 import { NotFoundError } from "../utils/errors.js";
 import { getKey, setKey } from "../utils/redis.js";
+import { Article } from "../models/index.js";
 
 const router = express.Router();
 
@@ -15,11 +15,7 @@ router.get("/:id", async function (req, res) {
     const { id } = req.params;
     let article = await getKey(`article:${id}`);
     if (!article) {
-      article = await prisma.articles.findUnique({
-        where: {
-          id: Number(id),
-        },
-      });
+      article = await Article.findByPk(Number(id));
       if (!article) {
         throw new NotFoundError(`ID: ${id}的文章未找到。`);
       }
@@ -50,18 +46,14 @@ router.get("/", async function (req, res) {
       return success(res, "查询文章列表成功。", data);
     }
 
-    const articles = await prisma.articles.findMany({
-      omit: {
-        content: true,
-      },
-      skip: offset, // 跳过的记录数,
-      take: pageSize, // 返回的记录数
-      orderBy: {
-        id: "desc",
-      },
+    const articles = await Article.findAll({
+      attributes: { exclude: ["content"] },
+      offset,
+      limit: pageSize,
+      order: [["id", "DESC"]],
     });
     // 查询总记录数
-    const total = await prisma.articles.count({});
+    const total = await Article.count();
 
     data = {
       articles,

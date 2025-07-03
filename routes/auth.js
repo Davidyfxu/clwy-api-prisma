@@ -1,6 +1,5 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
 import {
   BadRequestError,
   NotFoundError,
@@ -12,6 +11,7 @@ import { delKey } from "../utils/redis.js";
 import { validateCaptcha } from "../middlewares/index.js";
 import { mailProducer } from "../utils/rabbit-mq.js";
 import { StatusCodes } from "http-status-codes";
+import { User } from "../models/index.js";
 
 const router = express.Router();
 
@@ -26,27 +26,26 @@ router.post("/sign_up", validateCaptcha, async function (req, res) {
       sex: "UNKNOWN",
       role: "NORMAL",
     };
-    const user = await prisma.users.create({
-      data: body,
-    });
-    delete user.password;
+    const user = await User.create(body);
+    const userObj = user.toJSON();
+    delete userObj.password;
     // 请求成功，删除验证码，防止重复使用
     await delKey(req.body.captchaKey);
 
     // 将邮件发送请求放入队列
     const msg = {
-      to: user.email,
+      to: userObj.email,
       subject: "「长乐未央」的注册成功通知",
       html: `
-          您好，<span style="color: red">${user.nickname}。</span><br/><br/>
+          您好，<span style="color: red">${userObj.nickname}。</span><br/><br/>
           恭喜，您已成功注册会员！<br/><br/>
           请访问<a href="https://clwy.cn">「长乐未央」</a>官网，了解更多。<br/><br/>
-          ━━━━━━━━━━━━━━━━<br/>
+          ━━━━━━━━━━━━━━━<br/>
           长乐未央
           `,
     };
-    await mailProducer(msg);
-    success(res, "创建用户成功。", { user }, StatusCodes.CREATED);
+    // await mailProducer(msg);
+    success(res, "创建用户成功。", { user: userObj }, StatusCodes.CREATED);
   } catch (error) {
     failure(res, error);
   }
@@ -62,9 +61,9 @@ router.post("/sign_in", async (req, res) => {
     if (!password) {
       throw new BadRequestError("密码必须填写。");
     }
-    const user = await prisma.users.findFirst({
+    const user = await User.findOne({
       where: {
-        OR: [{ email: login }, { username: login }],
+        [User.sequelize.Op.or]: [{ email: login }, { username: login }],
       },
     });
     if (!user) {

@@ -1,5 +1,5 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
+import { Chapter, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateChapterSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
@@ -16,11 +16,11 @@ async function getChapter(req) {
   const { id } = req.params;
 
   // 查询当前章节
-  const chapter = await prisma.chapters.findUnique({
+  const chapter = await Chapter.findOne({
     where: {
       id: Number(id),
     },
-    ...getCondition(),
+    include: [{ model: Course }],
   });
 
   // 如果没有找到，就抛出异常
@@ -66,15 +66,17 @@ router.get("/", async (req, res) => {
     courseId && (where.courseId = Number(courseId));
     title && (where.title = { contains: title });
 
-    const chapters = await prisma.chapters.findMany({
-      ...getCondition(),
-      where, // 应用条件查询
-      skip: offset, // 跳过的记录数,
-      take: size, // 返回的记录数
-      orderBy: [{ rank: "asc" }, { id: "asc" }],
+    const chapters = await Chapter.findAll({
+      where,
+      offset,
+      limit: size,
+      order: [
+        ["rank", "asc"],
+        ["id", "asc"],
+      ],
+      include: [{ model: Course }],
     });
-    // 查询总记录数
-    const total = await prisma.chapters.count({ where });
+    const total = await Chapter.count({ where });
 
     // 查询章节列表
     success(res, "查询章节列表成功。", {
@@ -110,19 +112,15 @@ router.post("/", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const chapter = await prisma.chapters.create({
-      data: body,
-    });
-    await prisma.courses.update({
-      where: {
-        id: chapter.courseId,
-      },
-      data: {
-        chaptersCount: {
-          increment: 1,
+    const chapter = await Chapter.create(body);
+    await Course.update(
+      { chaptersCount: Course.sequelize.literal("chaptersCount + 1") },
+      {
+        where: {
+          id: chapter.courseId,
         },
       },
-    });
+    );
     await clearCache(chapter);
     success(res, "创建章节成功。", { chapter }, 201);
   } catch (error) {
@@ -134,21 +132,19 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const chapter = await getChapter(req);
-    await prisma.chapters.delete({
+    await Chapter.destroy({
       where: {
         id: Number(chapter?.id),
       },
     });
-    await prisma.courses.update({
-      where: {
-        id: chapter.courseId,
-      },
-      data: {
-        chaptersCount: {
-          decrement: 1,
+    await Course.update(
+      { chaptersCount: Course.sequelize.literal("chaptersCount - 1") },
+      {
+        where: {
+          id: chapter.courseId,
         },
       },
-    });
+    );
     await clearCache(chapter);
     success(res, "删除章节成功。");
   } catch (error) {
@@ -167,12 +163,13 @@ router.put("/:id", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedChapter = await prisma.chapters.update({
+    const updatedChapterArr = await Chapter.update(body, {
       where: {
         id: chapter?.id,
       },
-      data: body,
+      returning: true,
     });
+    const updatedChapter = updatedChapterArr[1][0];
     await clearCache(chapter);
     success(res, "更新章节成功。", { chapter: updatedChapter });
   } catch (error) {

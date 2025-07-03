@@ -48,15 +48,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(join(__dirname, "public")));
-
-app.use("/admin/articles", adminAuth, adminArticlesRouter);
-app.use("/admin/categories", adminAuth, adminCategoriesRouter);
-app.use("/admin/settings", adminAuth, adminSettingsRouter);
-app.use("/admin/courses", adminAuth, adminCoursesRouter);
-app.use("/admin/users", adminAuth, adminUsersRouter);
-app.use("/admin/chapters", adminAuth, adminChaptersRouter);
-app.use("/admin/charts", adminAuth, adminChartsRouter);
-app.use("/admin/auth", adminAuthRouter);
 // Routes
 app.use("/", sampleRouter);
 app.use("/categories", categoriesRouter);
@@ -69,6 +60,16 @@ app.use("/auth", authRouter);
 app.use("/captcha", captchaRouter);
 app.use("/users", userAuth, usersRouter);
 app.use("/likes", userAuth, likesRouter);
+
+app.use("/admin/articles", adminAuth, adminArticlesRouter);
+app.use("/admin/categories", adminAuth, adminCategoriesRouter);
+app.use("/admin/settings", adminAuth, adminSettingsRouter);
+app.use("/admin/courses", adminAuth, adminCoursesRouter);
+app.use("/admin/users", adminAuth, adminUsersRouter);
+app.use("/admin/chapters", adminAuth, adminChaptersRouter);
+app.use("/admin/charts", adminAuth, adminChartsRouter);
+app.use("/admin/auth", adminAuthRouter);
+
 // Catch 404 and forward to error handler
 app.use((req, res, next) => {
   next(createError(404));

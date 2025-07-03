@@ -1,9 +1,10 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
+import { User, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateUserSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey } from "../../utils/redis.js";
+import { Op } from "sequelize";
 
 const router = express.Router();
 async function clearCache(user) {
@@ -15,11 +16,7 @@ async function getUser(req) {
   const { id } = req.params;
 
   // 查询当前用户
-  const user = await prisma.users.findUnique({
-    where: {
-      id: Number(id),
-    },
-  });
+  const user = await User.findByPk(Number(id));
 
   // 如果没有找到，就抛出异常
   if (!user) {
@@ -61,23 +58,19 @@ router.get("/", async (req, res) => {
     const offset = (page - 1) * size;
 
     const where = {};
-    email && (where.email = email);
-    username && (where.username = { contains: username });
-    nickname && (where.nickname = { contains: nickname });
-    role && (where.role = role);
-    const users = await prisma.users.findMany({
-      where, // 应用条件查询
-      skip: offset, // 跳过的记录数,
-      take: size, // 返回的记录数
-      orderBy: {
-        id: "asc",
-      },
-      include: {
-        courses: true,
-      },
+    if (email) where.email = email;
+    if (username) where.username = { [Op.like]: `%${username}%` };
+    if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
+    if (role) where.role = role;
+    const users = await User.findAll({
+      where,
+      offset,
+      limit: size,
+      order: [["id", "ASC"]],
+      include: [{ model: Course }],
     });
     // 查询总记录数
-    const total = await prisma.users.count({ where });
+    const total = await User.count({ where });
 
     // 查询用户列表
     success(res, "查询用户列表成功。", {
@@ -125,9 +118,7 @@ router.post("/", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const user = await prisma.users.create({
-      data: body,
-    });
+    const user = await User.create(body);
 
     success(res, "创建用户成功。", { user }, 201);
   } catch (error) {
@@ -139,11 +130,7 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const user = await getUser(req);
-    await prisma.users.delete({
-      where: {
-        id: Number(user?.id),
-      },
-    });
+    await User.destroy({ where: { id: Number(user?.id) } });
     success(res, "删除用户成功。");
   } catch (error) {
     failure(res, error);
@@ -161,14 +148,9 @@ router.put("/:id", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedUser = await prisma.users.update({
-      where: {
-        id: user?.id,
-      },
-      data: body,
-    });
+    await User.update(body, { where: { id: user?.id } });
     await clearCache(user);
-    success(res, "更新用户成功。", { user: updatedUser });
+    success(res, "更新用户成功。", { user: { ...user.toJSON(), ...body } });
   } catch (error) {
     failure(res, error);
   }

@@ -1,6 +1,6 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
+import { Setting } from "../models/index.js";
 
 const router = express.Router();
 
@@ -10,8 +10,7 @@ const router = express.Router();
  */
 router.get("/", async function (req, res) {
   try {
-    const setting = await prisma.settings.findFirst();
-
+    const setting = await Setting.findOne();
     success(res, "获取系统数据成功。", { setting });
   } catch (error) {
     failure(res, error);

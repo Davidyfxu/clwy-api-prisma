@@ -1,9 +1,10 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateArticleSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey, getKeysByPattern } from "../../utils/redis.js";
+import { Article } from "../../models/index.js";
+import { Op } from "sequelize";
 
 const router = express.Router();
 /**
@@ -31,7 +32,7 @@ async function getArticle(req) {
   // 获取文章 ID
   const { id } = req.params;
   // 查询当前文章
-  const article = await prisma.articles.findUnique({
+  const article = await Article.findOne({
     where: {
       deletedAt: null,
       id: Number(id),
@@ -58,8 +59,8 @@ router.get("/", async (req, res) => {
   try {
     const { title, currentPage = 1, pageSize = 10 } = req.query;
     // 将 currentPage 和 pageSize 转换为数字
-    const page = parseInt(currentPage, 10);
-    const size = parseInt(pageSize, 10);
+    const page = Math.abs(Number(currentPage)) || 1;
+    const size = Math.abs(Number(pageSize)) || 10;
     // 计算offset
     const offset = (page - 1) * size;
 
@@ -67,18 +68,16 @@ router.get("/", async (req, res) => {
       deletedAt: null,
     };
     if (title) {
-      where.title = { contains: title };
+      where.title = { [Op.like]: `%${title}%` };
     }
-    const articles = await prisma.articles.findMany({
+    const articles = await Article.findAll({
       where, // 应用条件查询
-      skip: offset, // 跳过的记录数,
-      take: size, // 返回的记录数
-      orderBy: {
-        id: "asc",
-      },
+      offset, // 跳过的记录数,
+      limit: size, // 返回的记录数
+      order: [["id", "ASC"]],
     });
     // 查询总记录数
-    const total = await prisma.articles.count({ where });
+    const total = await Article.count({ where });
 
     // 查询文章列表
     success(res, "查询文章列表成功。", {
@@ -108,18 +107,7 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { title, content } = filterBody(req);
-
-    const validationResult = updateArticleSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
-    const article = await prisma.articles.create({
-      data: {
-        title,
-        content,
-      },
-    });
+    const article = await Article.create({ title, content });
     await clearCache();
     success(res, "创建文章成功。", { article }, 201);
   } catch (error) {
@@ -131,11 +119,7 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const article = await getArticle(req);
-    await prisma.articles.delete({
-      where: {
-        id: Number(article?.id),
-      },
-    });
+    await Article.destroy({ where: { id: Number(article?.id) } });
     success(res, "删除文章成功。");
   } catch (error) {
     failure(res, error);
@@ -153,14 +137,11 @@ router.put("/:id", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedArticle = await prisma.articles.update({
-      where: {
-        id: article?.id,
-      },
-      data: body,
-    });
+    await Article.update(body, { where: { id: article?.id } });
     await clearCache(article.id);
-    success(res, "更新文章成功。", { article: updatedArticle });
+    success(res, "更新文章成功。", {
+      article: { ...article.toJSON(), ...body },
+    });
   } catch (error) {
     failure(res, error);
   }
@@ -174,14 +155,14 @@ router.post("/delete", async function (req, res) {
   try {
     const { ids } = req.body;
 
-    await prisma.articles.updateMany({
-      where: {
-        id: {
-          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
+    await Article.update(
+      { deletedAt: new Date() },
+      {
+        where: {
+          id: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
         },
       },
-      data: { deletedAt: new Date() },
-    });
+    );
     await clearCache(ids);
     success(res, "已删除到回收站。");
   } catch (error) {
@@ -195,14 +176,14 @@ router.post("/delete", async function (req, res) {
 router.post("/restore", async function (req, res) {
   try {
     const { ids } = req.body;
-    await prisma.articles.updateMany({
-      where: {
-        id: {
-          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
+    await Article.update(
+      { deletedAt: null },
+      {
+        where: {
+          id: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
         },
       },
-      data: { deletedAt: null },
-    });
+    );
     await clearCache(ids);
     success(res, "已从回收站恢复。");
   } catch (error) {
@@ -216,11 +197,9 @@ router.post("/restore", async function (req, res) {
 router.post("/force_delete", async function (req, res) {
   try {
     const { ids } = req.body;
-    await prisma.articles.deleteMany({
+    await Article.destroy({
       where: {
-        id: {
-          in: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
-        },
+        id: Array.isArray(ids) ? ids.map((v) => Number(v)) : [Number(ids)],
       },
     });
     await clearCache();

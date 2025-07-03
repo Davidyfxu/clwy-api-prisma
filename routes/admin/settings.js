@@ -1,5 +1,5 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
+import { Setting } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateSettingSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
@@ -10,7 +10,7 @@ const router = express.Router();
 // 公共方法：查询当前系统设置
 async function getSetting() {
   // 查询当前系统设置
-  const setting = await prisma.settings.findFirst();
+  const setting = await Setting.findOne();
 
   // 如果没有找到，就抛出异常
   if (!setting) {
@@ -47,12 +47,13 @@ router.put("/", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedSetting = await prisma.settings.update({
+    const updatedSettingArr = await Setting.update(body, {
       where: {
         id: setting?.id,
       },
-      data: body,
+      returning: true,
     });
+    const updatedSetting = updatedSettingArr[1][0];
     success(res, "更新系统设置成功。", { setting: updatedSetting });
   } catch (error) {
     failure(res, error);

@@ -1,9 +1,10 @@
 import express from "express";
-import prisma from "../../lib/prisma.js";
+import { Course, Category, User, Chapter } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { updateCourseSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey, getKeysByPattern } from "../../utils/redis.js";
+import { Op } from "sequelize";
 
 const router = express.Router();
 
@@ -22,11 +23,11 @@ async function getCourse(req) {
   const { id } = req.params;
 
   // 查询当前课程
-  const course = await prisma.courses.findUnique({
-    where: {
-      id: Number(id),
-    },
-    ...getCondition(),
+  const course = await Course.findByPk(Number(id), {
+    include: [
+      { model: Category, attributes: ["id", "name"] },
+      { model: User, attributes: ["id", "username", "avatar"] },
+    ],
   });
 
   // 如果没有找到，就抛出异常
@@ -89,21 +90,22 @@ router.get("/", async (req, res) => {
     const where = {};
     categoryId && (where.categoryId = parseInt(categoryId, 10));
     userId && (where.userId = parseInt(userId, 10));
-    name && (where.name = { contains: name });
+    name && (where.name = { [Op.like]: `%${name}%` });
     recommended && (where.recommended = recommended === "true");
     introductory && (where.introductory = introductory === "true");
 
-    const courses = await prisma.courses.findMany({
-      ...getCondition(),
+    const courses = await Course.findAll({
       where, // 应用条件查询
-      skip: offset, // 跳过的记录数,
-      take: size, // 返回的记录数
-      orderBy: {
-        id: "asc",
-      },
+      offset, // 跳过的记录数,
+      limit: size, // 返回的记录数
+      order: [["id", "ASC"]],
+      include: [
+        { model: Category, attributes: ["id", "name"] },
+        { model: User, attributes: ["id", "username", "avatar"] },
+      ],
     });
     // 查询总记录数
-    const total = await prisma.courses.count({ where });
+    const total = await Course.count({ where });
 
     // 查询课程列表
     success(res, "查询课程列表成功。", {
@@ -138,9 +140,7 @@ router.post("/", async (req, res) => {
       return failure(res, validationResult.error);
     }
     body.userId = req.user.id;
-    const course = await prisma.courses.create({
-      data: body,
-    });
+    const course = await Course.create(body);
     await clearCache();
     success(res, "创建课程成功。", { course }, 201);
   } catch (error) {
@@ -152,17 +152,11 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const course = await getCourse(req);
-    const count = await prisma.chapters.count({
-      where: { courseId: course?.id },
-    });
+    const count = await Chapter.count({ where: { courseId: course?.id } });
     if (count > 0) {
       return failure(res, new Error("该课程下有章节，无法删除。"));
     }
-    await prisma.courses.delete({
-      where: {
-        id: Number(course?.id),
-      },
-    });
+    await Course.destroy({ where: { id: Number(course?.id) } });
     await clearCache(course);
     success(res, "删除课程成功。");
   } catch (error) {
@@ -181,14 +175,9 @@ router.put("/:id", async (req, res) => {
       return failure(res, validationResult.error);
     }
 
-    const updatedCourse = await prisma.courses.update({
-      where: {
-        id: course?.id,
-      },
-      data: body,
-    });
+    await Course.update(body, { where: { id: course?.id } });
     await clearCache(course);
-    success(res, "更新课程成功。", { course: updatedCourse });
+    success(res, "更新课程成功。", { course: { ...course.toJSON(), ...body } });
   } catch (error) {
     failure(res, error);
   }

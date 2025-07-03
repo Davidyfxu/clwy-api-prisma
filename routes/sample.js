@@ -1,8 +1,8 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
 import { getKey, setKey } from "../utils/redis.js";
 import logger from "../utils/logger.js";
+import { Course, Category, User } from "../models/index.js";
 
 const router = express.Router();
 
@@ -18,66 +18,32 @@ router.get("/", async function (req, res) {
     if (data) {
       return success(res, "获取首页数据成功。", data);
     }
-    const recommendedCourses = await prisma.courses.findMany({
-      where: {
-        recommended: true,
-      },
-      orderBy: {
-        id: "desc",
-      },
-      take: 10,
-      select: {
-        ...Object.fromEntries(
-          Object.entries(prisma.courses.fields)
-            .filter(
-              ([key]) => !["categoryId", "userId", "content"].includes(key),
-            )
-            .map(([key]) => [key, true]),
-        ),
-        categoryId: false,
-        userId: false,
-        content: false,
-        category: {
-          // 选择关联的 Categories 表的字段
-          select: {
-            id: true, // 选择 Categories 表的 id
-            name: true, // 选择 Categories 表的 name
-          },
+    const recommendedCourses = await Course.findAll({
+      where: { recommended: true },
+      order: [["id", "DESC"]],
+      limit: 10,
+      include: [
+        { model: Category, attributes: ["id", "name"] },
+        {
+          model: User,
+          attributes: ["id", "username", "nickname", "avatar", "company"],
         },
-        user: {
-          // 选择关联的 Categories 表的字段
-          select: {
-            id: true, // 选择 Categories 表的 id
-            username: true, // 选择 Categories 表的 name
-            nickname: true,
-            avatar: true,
-            company: true,
-          },
-        },
-      },
+      ],
+      attributes: { exclude: ["categoryId", "userId", "content"] },
     });
-    const likesCourses = await prisma.courses.findMany({
-      take: 10,
-      orderBy: [{ likesCount: "desc" }, { id: "desc" }],
-      omit: {
-        categoryId: true,
-        userId: true,
-        content: true,
-      },
+    const likesCourses = await Course.findAll({
+      order: [
+        ["likesCount", "DESC"],
+        ["id", "DESC"],
+      ],
+      limit: 10,
+      attributes: { exclude: ["categoryId", "userId", "content"] },
     });
-    const introductoryCourses = await prisma.courses.findMany({
-      take: 10,
-      orderBy: {
-        id: "desc",
-      },
-      omit: {
-        categoryId: true,
-        userId: true,
-        content: true,
-      },
-      where: {
-        introductory: true,
-      },
+    const introductoryCourses = await Course.findAll({
+      where: { introductory: true },
+      order: [["id", "DESC"]],
+      limit: 10,
+      attributes: { exclude: ["categoryId", "userId", "content"] },
     });
 
     // 组装数据

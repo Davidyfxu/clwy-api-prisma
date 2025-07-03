@@ -1,8 +1,9 @@
 import { failure, success } from "../utils/responses.js";
 import express from "express";
-import prisma from "../lib/prisma.js";
 import { BadRequestError, NotFoundError } from "../utils/errors.js";
 import { delKey, getKey, setKey } from "../utils/redis.js";
+import { User } from "../models/index.js";
+import bcrypt from "bcryptjs";
 
 const router = express.Router();
 // 清除缓存
@@ -30,26 +31,16 @@ router.get("/me", async function (req, res) {
 // 公共方法：查询当前用户
 async function getUser(req, showPassword = false) {
   const id = req.userId;
-  let condition = {};
+  let attributes = { exclude: [] };
   if (!showPassword) {
-    condition.omit = {
-      password: true,
-    };
+    attributes.exclude.push("password");
   }
   // 查询当前用户
-  const user = await prisma.users.findUnique({
-    where: {
-      id: Number(id),
-    },
-    ...condition,
-  });
-
-  // 如果没有找到，就抛出异常
+  const user = await User.findByPk(Number(id), { attributes });
   if (!user) {
     throw new NotFoundError(`ID: ${id}的用户未找到。`);
   }
-
-  return user;
+  return user.toJSON();
 }
 // 更新用户信息
 router.put("/info", async function (req, res) {
@@ -61,13 +52,12 @@ router.put("/info", async function (req, res) {
       introduce: req.body.introduce,
       avatar: req.body.avatar,
     };
-
-    const user = await prisma.users.update({
-      where: {
-        id: Number(req.userId),
-      },
-      data: body,
+    const [count, [user]] = await User.update(body, {
+      where: { id: Number(req.userId) },
+      returning: true,
+      individualHooks: true,
     });
+    if (!user) throw new NotFoundError("用户未找到");
     delete user.password;
     await clearCache(user);
     success(res, "更新用户信息成功。", { user });
@@ -85,15 +75,12 @@ router.put("/account", async function (req, res) {
       password: req.body.password,
       passwordConfirmation: req.body.passwordConfirmation,
     };
-
     if (!body.currentPassword) {
       throw new BadRequestError("当前密码必须填写。");
     }
-
     if (body.password !== body.passwordConfirmation) {
       throw new BadRequestError("两次输入的密码不一致。");
     }
-
     const user = await getUser(req, true);
     const isPasswordValid = bcrypt.compareSync(
       body.currentPassword,
@@ -102,16 +89,20 @@ router.put("/account", async function (req, res) {
     if (!isPasswordValid) {
       throw new BadRequestError("当前密码不正确。");
     }
-
-    await prisma.users.update({
-      where: {
-        id: Number(req.userId),
-      },
-      data: body,
+    const updateData = {
+      email: body.email,
+      username: body.username,
+      password: body.password,
+    };
+    const [count, [updatedUser]] = await User.update(updateData, {
+      where: { id: Number(req.userId) },
+      returning: true,
+      individualHooks: true,
     });
-    delete user.password;
-    await clearCache(user);
-    success(res, "更新用户信息成功。", { user });
+    if (!updatedUser) throw new NotFoundError("用户未找到");
+    delete updatedUser.password;
+    await clearCache(updatedUser);
+    success(res, "更新用户信息成功。", { user: updatedUser });
   } catch (error) {
     failure(res, error);
   }
