@@ -1,10 +1,10 @@
 import express from "express";
 import { Course, Category, User, Chapter } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
-import { updateCourseSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey, getKeysByPattern } from "../../utils/redis.js";
 import { Op } from "sequelize";
+import { coursesIndex } from "../../utils/meilisearch.js";
 
 const router = express.Router();
 
@@ -49,26 +49,7 @@ function filterBody(req) {
     content: req.body.content,
   };
 }
-// 公共方法：关联分类、用户数据
-function getCondition() {
-  return {
-    include: {
-      category: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      user: {
-        select: {
-          id: true,
-          username: true,
-          avatar: true,
-        },
-      },
-    },
-  };
-}
+
 // 查询课程列表
 router.get("/", async (req, res) => {
   try {
@@ -78,8 +59,8 @@ router.get("/", async (req, res) => {
       name,
       recommended,
       introductory,
-      currentPage = 1,
-      pageSize = 10,
+      currentPage = "1",
+      pageSize = "10",
     } = req.query;
     // 将 currentPage 和 pageSize 转换为数字
     const page = parseInt(currentPage, 10);
@@ -135,13 +116,8 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const body = filterBody(req);
-    const validationResult = updateCourseSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
     body.userId = req.user.id;
     const course = await Course.create(body);
-    await clearCache();
     success(res, "创建课程成功。", { course }, 201);
   } catch (error) {
     failure(res, error);
@@ -157,7 +133,6 @@ router.delete("/:id", async (req, res) => {
       return failure(res, new Error("该课程下有章节，无法删除。"));
     }
     await Course.destroy({ where: { id: Number(course?.id) } });
-    await clearCache(course);
     success(res, "删除课程成功。");
   } catch (error) {
     failure(res, error);
@@ -169,14 +144,7 @@ router.put("/:id", async (req, res) => {
   try {
     const course = await getCourse(req);
     const body = filterBody(req);
-
-    const validationResult = updateCourseSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     await Course.update(body, { where: { id: course?.id } });
-    await clearCache(course);
     success(res, "更新课程成功。", { course: { ...course.toJSON(), ...body } });
   } catch (error) {
     failure(res, error);

@@ -1,9 +1,9 @@
 import express from "express";
-import { Setting } from "../../models/index.js";
+import { Chapter, Course, Setting } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
-import { updateSettingSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { flushAll } from "../../utils/redis.js";
+import { chaptersIndex, coursesIndex } from "../../utils/meilisearch.js";
 
 const router = express.Router();
 
@@ -42,11 +42,6 @@ router.put("/", async (req, res) => {
     const setting = await getSetting();
     const body = filterBody(req);
 
-    const validationResult = updateSettingSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     const updatedSettingArr = await Setting.update(body, {
       where: {
         id: setting?.id,
@@ -66,6 +61,34 @@ router.get("/flush-all", async function (req, res) {
   try {
     await flushAll();
     success(res, "清除所有缓存成功。");
+  } catch (error) {
+    failure(res, error);
+  }
+});
+
+// 重建meilisearch索引
+router.get("/meilisearch_reindex", async (req, res) => {
+  try {
+    // 课程
+    const courses = await Course.findAll({
+      attributes: ["id", "name", "image", "content", "likesCount", "updatedAt"],
+    });
+    await coursesIndex.addDocuments(courses);
+
+    // 章节
+    const chapters = await Chapter.findAll({
+      attributes: ["id", "title", "content", "updatedAt"],
+      include: [
+        {
+          model: Course,
+          as: "Course",
+          attributes: ["id", "name", "image"],
+        },
+      ],
+    });
+    await chaptersIndex.addDocuments(chapters);
+
+    success(res, "重建索引成功。");
   } catch (error) {
     failure(res, error);
   }

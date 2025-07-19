@@ -20,6 +20,7 @@
     "http-errors": "~1.6.3",
     "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
+    "meilisearch": "^0.51.0",
     "morgan": "~1.9.1",
     "mysql2": "^3.14.1",
     "nodemailer": "^6.10.1",
@@ -35,6 +36,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@faker-js/faker": "^9.9.0"
+    "@faker-js/faker": "^9.9.0",
+    "lodash-es": "^4.17.21"
   }
 }

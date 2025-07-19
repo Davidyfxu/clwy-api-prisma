@@ -12,8 +12,8 @@ const Article = sequelize.define(
         notNull: { msg: "Title is required" },
         notEmpty: { msg: "Title cannot be empty" },
         len: {
-          args: [2, 45],
-          msg: "Title must be between 2 and 45 characters",
+          args: [1, 45],
+          msg: "Title must be between 1 and 45 characters",
         },
       },
     },

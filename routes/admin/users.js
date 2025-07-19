@@ -1,10 +1,10 @@
 import express from "express";
 import { User, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
-import { updateUserSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey } from "../../utils/redis.js";
 import { Op } from "sequelize";
+import { set } from "lodash-es";
 
 const router = express.Router();
 async function clearCache(user) {
@@ -48,20 +48,21 @@ router.get("/", async (req, res) => {
       username,
       nickname,
       role,
-      currentPage = 1,
-      pageSize = 10,
+      currentPage = "1",
+      pageSize = "10",
     } = req.query;
     // 将 currentPage 和 pageSize 转换为数字
-    const page = parseInt(currentPage, 10);
-    const size = parseInt(pageSize, 10);
+    const page = Number(currentPage);
+    const size = Number(pageSize);
     // 计算offset
     const offset = (page - 1) * size;
 
     const where = {};
-    if (email) where.email = email;
-    if (username) where.username = { [Op.like]: `%${username}%` };
-    if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
-    if (role) where.role = role;
+    email && set(where, "email", email);
+    username && set(where, "username", { [Op.like]: `%${username}%` });
+    nickname && set(where, "nickname", { [Op.like]: `%${nickname}%` });
+    role && set(where, "role", role);
+    // 查询用户列表
     const users = await User.findAll({
       where,
       offset,
@@ -112,12 +113,6 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const body = filterBody(req);
-
-    const validationResult = updateUserSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     const user = await User.create(body);
 
     success(res, "创建用户成功。", { user }, 201);
@@ -142,12 +137,6 @@ router.put("/:id", async (req, res) => {
   try {
     const user = await getUser(req);
     const body = filterBody(req);
-
-    const validationResult = updateUserSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     await User.update(body, { where: { id: user?.id } });
     await clearCache(user);
     success(res, "更新用户成功。", { user: { ...user.toJSON(), ...body } });

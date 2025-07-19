@@ -12,7 +12,6 @@ const router = express.Router();
  */
 router.get("/", async function (req, res) {
   try {
-    throw new Error("error");
     // 如果有缓存，直接返回缓存数据
     let data = await getKey("index");
     if (data) {

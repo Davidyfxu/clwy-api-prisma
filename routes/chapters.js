@@ -13,7 +13,6 @@ router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
     const chapter = await Chapter.findByPk(Number(id), {
-      attributes: { exclude: ["courseId"] },
       include: [
         {
           model: Course,

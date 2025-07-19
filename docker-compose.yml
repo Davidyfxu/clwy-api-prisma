@@ -28,4 +28,13 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: clwy1234
+  meilisearch:
+    image: getmeili/meilisearch:v1.13
+    environment:
+      - MEILI_ENV=development
+      - MEILI_MASTER_KEY=rdf6Qvn7daArhhstDX2UunlUjAr5ii-RBiH5JrgAhQA
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./data/meili_data:/meili_data
 

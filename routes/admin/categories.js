@@ -1,7 +1,6 @@
 import express from "express";
 import { Category, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
-import { updateCategorySchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { StatusCodes } from "http-status-codes";
 import { delKey } from "../../utils/redis.js";
@@ -96,12 +95,6 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { name, rank } = filterBody(req);
-
-    const validationResult = updateCategorySchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     const category = await Category.create({
       name,
       rank,
@@ -148,12 +141,6 @@ router.put("/:id", async (req, res) => {
   try {
     const category = await getCategory(req);
     const body = filterBody(req);
-
-    const validationResult = updateCategorySchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     const updatedCategoryArr = await Category.update(body, {
       where: {
         id: category?.id,

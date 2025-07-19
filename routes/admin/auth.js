@@ -8,6 +8,7 @@ import {
 import { User } from "../../models/index.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.post("/sign_in", async (req, res) => {
 
     const user = await User.findOne({
       where: {
-        [User.sequelize.Op.or]: [{ email: login }, { username: login }],
+        [Op.or]: [{ email: login }, { username: login }],
       },
     });
     if (!user) {

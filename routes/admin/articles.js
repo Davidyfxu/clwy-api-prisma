@@ -1,6 +1,5 @@
 import express from "express";
 import { failure, success } from "../../utils/responses.js";
-import { updateArticleSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey, getKeysByPattern } from "../../utils/redis.js";
 import { Article } from "../../models/index.js";
@@ -67,6 +66,7 @@ router.get("/", async (req, res) => {
     const where = {
       deletedAt: null,
     };
+
     if (title) {
       where.title = { [Op.like]: `%${title}%` };
     }
@@ -131,12 +131,6 @@ router.put("/:id", async (req, res) => {
   try {
     const article = await getArticle(req);
     const body = filterBody(req);
-
-    const validationResult = updateArticleSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     await Article.update(body, { where: { id: article?.id } });
     await clearCache(article.id);
     success(res, "更新文章成功。", {

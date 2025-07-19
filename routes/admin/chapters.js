@@ -1,27 +1,19 @@
 import express from "express";
 import { Chapter, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
-import { updateChapterSchema } from "../../utils/schemas.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { delKey } from "../../utils/redis.js";
 
 const router = express.Router();
-async function clearCache(chapter) {
-  await delKey(`chapters:${chapter.courseId}`);
-  await delKey(`chapter:${chapter.id}`);
-}
+
 // 公共方法：查询当前章节
 async function getChapter(req) {
   // 获取章节 ID
   const { id } = req.params;
+  const condition = getCondition();
 
   // 查询当前章节
-  const chapter = await Chapter.findOne({
-    where: {
-      id: Number(id),
-    },
-    include: [{ model: Course }],
-  });
+  const chapter = await Chapter.findByPk(id, condition);
 
   // 如果没有找到，就抛出异常
   if (!chapter) {
@@ -43,16 +35,21 @@ function filterBody(req) {
 // 公共查询
 function getCondition() {
   return {
-    include: {
-      course: true,
-    },
+    attributes: { exclude: ["CourseId"] },
+    include: [
+      {
+        model: Course,
+        as: "Course",
+        attributes: ["id", "name"],
+      },
+    ],
   };
 }
 
 // 查询章节列表
 router.get("/", async (req, res) => {
   try {
-    const { courseId, title, currentPage = 1, pageSize = 10 } = req.query;
+    const { courseId, title, currentPage = "1", pageSize = "10" } = req.query;
     // 将 currentPage 和 pageSize 转换为数字
     const page = parseInt(currentPage, 10);
     const size = parseInt(pageSize, 10);
@@ -67,6 +64,7 @@ router.get("/", async (req, res) => {
     title && (where.title = { contains: title });
 
     const chapters = await Chapter.findAll({
+      ...getCondition(),
       where,
       offset,
       limit: size,
@@ -107,21 +105,7 @@ router.post("/", async (req, res) => {
   try {
     const body = filterBody(req);
 
-    const validationResult = updateChapterSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
     const chapter = await Chapter.create(body);
-    await Course.update(
-      { chaptersCount: Course.sequelize.literal("chaptersCount + 1") },
-      {
-        where: {
-          id: chapter.courseId,
-        },
-      },
-    );
-    await clearCache(chapter);
     success(res, "创建章节成功。", { chapter }, 201);
   } catch (error) {
     failure(res, error);
@@ -132,20 +116,7 @@ router.post("/", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const chapter = await getChapter(req);
-    await Chapter.destroy({
-      where: {
-        id: Number(chapter?.id),
-      },
-    });
-    await Course.update(
-      { chaptersCount: Course.sequelize.literal("chaptersCount - 1") },
-      {
-        where: {
-          id: chapter.courseId,
-        },
-      },
-    );
-    await clearCache(chapter);
+    await chapter.destroy();
     success(res, "删除章节成功。");
   } catch (error) {
     failure(res, error);
@@ -157,21 +128,8 @@ router.put("/:id", async (req, res) => {
   try {
     const chapter = await getChapter(req);
     const body = filterBody(req);
-
-    const validationResult = updateChapterSchema.safeParse(body);
-    if (!validationResult.success) {
-      return failure(res, validationResult.error);
-    }
-
-    const updatedChapterArr = await Chapter.update(body, {
-      where: {
-        id: chapter?.id,
-      },
-      returning: true,
-    });
-    const updatedChapter = updatedChapterArr[1][0];
-    await clearCache(chapter);
-    success(res, "更新章节成功。", { chapter: updatedChapter });
+    await chapter.update(body);
+    success(res, "更新章节成功。", { chapter });
   } catch (error) {
     failure(res, error);
   }

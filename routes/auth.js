@@ -12,6 +12,7 @@ import { validateCaptcha } from "../middlewares/index.js";
 import { mailProducer } from "../utils/rabbit-mq.js";
 import { StatusCodes } from "http-status-codes";
 import { User } from "../models/index.js";
+import { Op } from "sequelize";
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ router.post("/sign_up", validateCaptcha, async function (req, res) {
           长乐未央
           `,
     };
-    // await mailProducer(msg);
+    await mailProducer(msg);
     success(res, "创建用户成功。", { user: userObj }, StatusCodes.CREATED);
   } catch (error) {
     failure(res, error);
@@ -63,7 +64,7 @@ router.post("/sign_in", async (req, res) => {
     }
     const user = await User.findOne({
       where: {
-        [User.sequelize.Op.or]: [{ email: login }, { username: login }],
+        [Op.or]: [{ email: login }, { username: login }],
       },
     });
     if (!user) {
