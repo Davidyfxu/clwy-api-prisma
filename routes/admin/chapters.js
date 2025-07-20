@@ -2,7 +2,6 @@ import express from "express";
 import { Chapter, Course } from "../../models/index.js";
 import { failure, success } from "../../utils/responses.js";
 import { NotFoundError } from "../../utils/errors.js";
-import { delKey } from "../../utils/redis.js";
 
 const router = express.Router();
 
@@ -127,7 +126,9 @@ router.delete("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const chapter = await getChapter(req);
+    console.log("chapter", chapter);
     const body = filterBody(req);
+    console.log("chapter body", body);
     await chapter.update(body);
     success(res, "更新章节成功。", { chapter });
   } catch (error) {

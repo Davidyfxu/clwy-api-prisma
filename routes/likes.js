@@ -80,7 +80,7 @@ router.get("/", async function (req, res) {
       offset,
     });
     const count = await Like.count({ where: { userId: req.userId } });
-    const formattedCourses = likes.map((like) => like.course);
+    const formattedCourses = likes.map((like) => like.dataValues.course);
     success(res, "查询用户点赞的课程成功。", {
       courses: formattedCourses,
       pagination: {
