@@ -4,6 +4,10 @@ import { BadRequestError, NotFoundError } from "../utils/errors.js";
 import { delKey, getKey, setKey } from "../utils/redis.js";
 import { User } from "../models/index.js";
 import bcrypt from "bcryptjs";
+import {
+  validateUpdateUserInfo,
+  validateUpdateUserAccount,
+} from "../middlewares/index.js";
 
 const router = express.Router();
 // 清除缓存
@@ -43,7 +47,7 @@ async function getUser(req, showPassword = false) {
   return user.toJSON();
 }
 // 更新用户信息
-router.put("/info", async function (req, res) {
+router.put("/info", validateUpdateUserInfo, async function (req, res) {
   try {
     const body = {
       nickname: req.body.nickname,
@@ -66,7 +70,7 @@ router.put("/info", async function (req, res) {
   }
 });
 // 更新用户登录信息
-router.put("/account", async function (req, res) {
+router.put("/account", validateUpdateUserAccount, async function (req, res) {
   try {
     const body = {
       email: req.body.email,
@@ -84,7 +88,7 @@ router.put("/account", async function (req, res) {
     const user = await getUser(req, true);
     const isPasswordValid = bcrypt.compareSync(
       body.currentPassword,
-      user.password,
+      user.password
     );
     if (!isPasswordValid) {
       throw new BadRequestError("当前密码不正确。");

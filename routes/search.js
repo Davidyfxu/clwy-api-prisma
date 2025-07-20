@@ -4,6 +4,7 @@ import { Article, Course, User } from "../models/index.js";
 import { chaptersIndex, coursesIndex } from "../utils/meilisearch.js";
 import { BadRequestError } from "../utils/errors.js";
 import { Op } from "sequelize";
+import { validateSearch } from "../middlewares/index.js";
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ const router = express.Router();
  * 查询搜索数据
  * GET /search
  */
-router.get("/", async function (req, res) {
+router.get("/", validateSearch, async function (req, res) {
   try {
     const query = req.query;
     const currentPage = Math.abs(Number(query.currentPage)) || 1;

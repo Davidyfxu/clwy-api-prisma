@@ -8,7 +8,11 @@ import {
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { delKey } from "../utils/redis.js";
-import { validateCaptcha } from "../middlewares/index.js";
+import {
+  validateCaptcha,
+  validateSignUp,
+  validateSignIn,
+} from "../middlewares/index.js";
 import { mailProducer } from "../utils/rabbit-mq.js";
 import { StatusCodes } from "http-status-codes";
 import { User } from "../models/index.js";
@@ -17,42 +21,47 @@ import { Op } from "sequelize";
 const router = express.Router();
 
 // 用户注册需要验证码
-router.post("/sign_up", validateCaptcha, async function (req, res) {
-  try {
-    const body = {
-      email: req.body.email,
-      username: req.body.username,
-      nickname: req.body.nickname,
-      password: req.body.password,
-      sex: "UNKNOWN",
-      role: "NORMAL",
-    };
-    const user = await User.create(body);
-    const userObj = user.toJSON();
-    delete userObj.password;
-    // 请求成功，删除验证码，防止重复使用
-    await delKey(req.body.captchaKey);
+router.post(
+  "/sign_up",
+  validateCaptcha,
+  validateSignUp,
+  async function (req, res) {
+    try {
+      const body = {
+        email: req.body.email,
+        username: req.body.username,
+        nickname: req.body.nickname,
+        password: req.body.password,
+        sex: "UNKNOWN",
+        role: "NORMAL",
+      };
+      const user = await User.create(body);
+      const userObj = user.toJSON();
+      delete userObj.password;
+      // 请求成功，删除验证码，防止重复使用
+      await delKey(req.body.captchaKey);
 
-    // 将邮件发送请求放入队列
-    const msg = {
-      to: userObj.email,
-      subject: "「长乐未央」的注册成功通知",
-      html: `
+      // 将邮件发送请求放入队列
+      const msg = {
+        to: userObj.email,
+        subject: "「长乐未央」的注册成功通知",
+        html: `
           您好，<span style="color: red">${userObj.nickname}。</span><br/><br/>
           恭喜，您已成功注册会员！<br/><br/>
           请访问<a href="https://clwy.cn">「长乐未央」</a>官网，了解更多。<br/><br/>
           ━━━━━━━━━━━━━━━<br/>
           长乐未央
           `,
-    };
-    await mailProducer(msg);
-    success(res, "创建用户成功。", { user: userObj }, StatusCodes.CREATED);
-  } catch (error) {
-    failure(res, error);
+      };
+      await mailProducer(msg);
+      success(res, "创建用户成功。", { user: userObj }, StatusCodes.CREATED);
+    } catch (error) {
+      failure(res, error);
+    }
   }
-});
+);
 
-router.post("/sign_in", async (req, res) => {
+router.post("/sign_in", validateSignIn, async (req, res) => {
   try {
     const { login, password } = req.body;
     if (!login) {

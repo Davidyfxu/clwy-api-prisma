@@ -22,7 +22,6 @@ function success(res, message, data = {}, code = 200) {
  * @param error
  */
 function failure(res, error) {
-  console.log("failure", error.name, error.message);
   if (error.name === "SequelizeValidationError") {
     const errors = error.errors.map((e) => e.message);
     return res.status(400).json({
